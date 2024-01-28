@@ -1,39 +1,61 @@
 import uuid
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select, func
 
 from .. import schemas
-from ..models import Menu
+from ..models import Menu, Submenu, Dish
 
 
 def get_menu(db: Session):
     db_menu_list = db.query(Menu).all()
     menu_list = []
     for menu in db_menu_list:
-        submenu_count = len(menu.submenu)
-        dishes_count = sum([len(sub.dishes) for sub in menu.submenu])
-        menu_repr = schemas.Menu(
-            id=menu.id,
-            title=menu.title,
-            description=menu.description,
-            submenus_count=submenu_count,
-            dishes_count=dishes_count
+        query = (
+            select(
+                Menu,
+                func.count(Submenu.id.distinct()).label('submenu_count'),
+                func.count(Dish.id.distinct()).label('dishes_count')
+            )
+            .where(Menu.id == menu.id)
+            .select_from(Menu).outerjoin(Submenu).outerjoin(Dish)
+            .group_by(Menu.id)
         )
-        menu_list.append(menu_repr)
+        result = db.execute(query).fetchone()
+
+        if result:
+            menu_repr = schemas.Menu(
+                id=menu.id,
+                title=menu.title,
+                description=menu.description,
+                submenus_count=result.submenu_count,
+                dishes_count=result.dishes_count
+            )
+            menu_list.append(menu_repr)
     return menu_list
 
 
 def get_menu_by_id(db: Session, menu_id: str):
     db_menu = db.query(Menu).filter(Menu.id == menu_id).first()
+    query = (
+            select(
+                Menu,
+                func.count(Submenu.id.distinct()).label('submenu_count'),
+                func.count(Dish.id.distinct()).label('dishes_count')
+            )
+            .where(Menu.id == menu_id)
+            .select_from(Menu).outerjoin(Submenu).outerjoin(Dish)
+            .group_by(Menu.id)
+        )
+    result = db.execute(query).fetchone()
+
     if db_menu:
-        submenu_count = len(db_menu.submenu)
-        dishes_count = sum([len(sub.dishes) for sub in db_menu.submenu])
         menu_repr = schemas.Menu(
             id=db_menu.id,
             title=db_menu.title,
             description=db_menu.description,
-            submenus_count=submenu_count,
-            dishes_count=dishes_count
+            submenus_count=result.submenu_count,
+            dishes_count=result.dishes_count
         )
         return menu_repr
     return None
@@ -70,14 +92,23 @@ def update(db: Session, menu_id: str, menu_data: schemas.CreateMenu):
     db.add(db_menu)
     db.commit()
     db.refresh(db_menu)
-    submenu_count = len(db_menu.submenu)
-    dishes_count = sum([len(sub.dishes) for sub in db_menu.submenu])
+    query = (
+            select(
+                Menu,
+                func.count(Submenu.id.distinct()).label('submenu_count'),
+                func.count(Dish.id.distinct()).label('dishes_count')
+            )
+            .where(Menu.id == menu_id)
+            .select_from(Menu).outerjoin(Submenu).outerjoin(Dish)
+            .group_by(Menu.id)
+        )
+    result = db.execute(query).fetchone()
     menu_repr = schemas.Menu(
             id=db_menu.id,
             title=db_menu.title,
             description=db_menu.description,
-            submenus_count=submenu_count,
-            dishes_count=dishes_count
+            submenus_count=result.submenu_count,
+            dishes_count=result.dishes_count
     )
     return menu_repr
 

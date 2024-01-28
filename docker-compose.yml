@@ -2,7 +2,7 @@ version: '3.3'
 services:
 
   db:
-    image: postgres:13.0-alpine
+    image: postgres:15.1-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     ports:
@@ -28,6 +28,33 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
-    
+  
+  test_db:
+    image: postgres:15.1-alpine
+    volumes:
+      - postgres_pytest_data:/var/lib/postgresql/data/
+    command: -p 4321
+    expose:
+      - 4321
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_TEST}
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile_pytest
+    env_file:
+      - .env
+    ports:
+      - 9000:80
+    container_name: fastapi_tests
+    depends_on:
+      - test_db
+    command: sh -c "pytest -v"
+    volumes:
+      - .:/app
 volumes:
   postgres_data:
+  postgres_pytest_data:

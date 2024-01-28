@@ -2,6 +2,7 @@
 - Python (FastAPI, SQLAlchemy)
 - PostgreSQL
 - Docker
+- pytest
 
 ## Описание проекта
 REST API по работе с меню ресторана.
@@ -23,13 +24,22 @@ cd Menu
 Создайте .env файл, с параметрами:
 
 ``` 
-    POSTGRES_USER=postgres
-    POSTGRES_PASSWORD=postgres
-    POSTGRES_DB=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=postgres
+
+POSTGRES_USER_TEST=postgres
+POSTGRES_PASSWORD_TEST=postgres
+POSTGRES_DB_TEST=postgres_test
 ```
 
-Выполните команду для сборки и запуска проекта в фоновом режиме:
+Выполните команду для сборки и запуска проекта:
 
 ```
 docker-compose up --build -d
 ```
+```
+docker-compose up test
+```
+## Сложный ORM запрос
+v1/crud/menu.py/get_menu
